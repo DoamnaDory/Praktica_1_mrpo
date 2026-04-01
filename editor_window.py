@@ -1,7 +1,6 @@
 import random
 import sqlite3
 import os
-import shutil
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QDoubleSpinBox, QSpinBox,
                              QPushButton, QComboBox, QTextEdit, QMessageBox,
@@ -23,9 +22,9 @@ class ProductEditorWindow(QDialog):
         if not os.path.exists(self.image_dir):
             os.makedirs(self.image_dir)
 
-        self.current_photo_name = None  # Имя файла в БД
-        self.new_photo_path = None  # Путь к новому выбранному файлу на диске
-        self.old_photo_to_delete = None  # Файл, который нужно удалить при успешном сохранении
+        self.current_photo_name = None
+        self.new_photo_path = None
+        self.old_photo_to_delete = None
 
         # Данные для комбобоксов
         self.categories = []
@@ -44,7 +43,7 @@ class ProductEditorWindow(QDialog):
     def init_ui(self):
         layout = QVBoxLayout(self)
 
-        # ID (только для чтения)
+        # ID
         self.id_label = QLabel("ID товара:")
         self.id_input = QLineEdit()
         self.id_input.setReadOnly(True)
@@ -178,10 +177,8 @@ class ProductEditorWindow(QDialog):
             self.sup_combo.setCurrentIndex(
                 next((i for i, s in enumerate(self.suppliers) if s[0] == res[4]),
                      0))
-            # Цену переводим во float (так как там QDoubleSpinBox)
             self.price_input.setValue(float(res[5] if res[5] else 0))
 
-            # Скидку и количество обязательно переводим в int!
             self.disc_input.setValue(int(res[6] if res[6] else 0))
             self.qty_input.setValue(int(res[7] if res[7] else 0))
             self.current_photo_name = res[8]
@@ -193,31 +190,28 @@ class ProductEditorWindow(QDialog):
                                                                     Qt.AspectRatioMode.KeepAspectRatio))
 
     def save(self):
-        # 1. Валидация (уже ограничена SpinBox-ами, но на всякий случай)
+        # Валидация
         if not self.name_input.text().strip():
             QMessageBox.warning(self, "Ошибка", "Заполните название!")
             return
 
-        # 2. Обработка изображения
+        # Обработка изображения
         final_photo_name = self.current_photo_name
         if self.new_photo_path:
-            # Создаем новое имя файла
             ext = os.path.splitext(self.new_photo_path)[1]
             final_photo_name = f"prod_{random.randint(1000, 9999)}{ext}"
             new_dest = os.path.join(self.image_dir, final_photo_name)
 
-            # Изменение размера и сохранение
             pix = QPixmap(self.new_photo_path).scaled(300, 200,
                                                       Qt.AspectRatioMode.IgnoreAspectRatio,
                                                       Qt.TransformationMode.SmoothTransformation)
             pix.save(new_dest)
 
-            # Помечаем старое фото на удаление
             if self.current_photo_name:
                 self.old_photo_to_delete = os.path.join(self.image_dir,
                                                         self.current_photo_name)
 
-        # 3. Сохранение в БД
+        # Сохранение в БД
         try:
             conn = sqlite3.connect('shoe_store.db')
             cur = conn.cursor()
@@ -237,7 +231,6 @@ class ProductEditorWindow(QDialog):
                              self.qty_input.value(), final_photo_name,
                              self.p_id))
             else:
-                # Генерация артикула (как делали ранее)
                 from random import choice
                 from string import ascii_uppercase, digits
                 art = f"{choice(ascii_uppercase)}{''.join(choice(digits) for _ in range(3))}{choice(ascii_uppercase)}{choice(digits)}"
@@ -254,7 +247,7 @@ class ProductEditorWindow(QDialog):
             conn.commit()
             conn.close()
 
-            # 4. Удаляем старое фото, если оно было заменено
+            # Удаляем старое фото, если оно было заменено
             if self.old_photo_to_delete and os.path.exists(
                     self.old_photo_to_delete):
                 try:

@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 DB_NAME = 'shoe_store.db'
-DATA_DIR = 'data'  # Путь к вашей папке
+DATA_DIR = 'data'
 
 
 def get_or_create_id(cursor, table, val, col='name'):
@@ -22,15 +22,13 @@ def run_import():
     cursor.execute("PRAGMA foreign_keys = ON;")
 
     try:
-        # 1. Пункты выдачи (Пункты выдачи_import.xlsx)
         path_points = os.path.join(DATA_DIR, 'Пункты выдачи_import.xlsx')
         if os.path.exists(path_points):
             df = pd.read_excel(path_points, header=None)
             for _, row in df.iterrows():
                 get_or_create_id(cursor, 'pickup_points', row[0], 'address')
-            print("✓ Пункты выдачи загружены")
+            print("Пункты выдачи загружены")
 
-        # 2. Пользователи (user_import.xlsx)
         path_users = os.path.join(DATA_DIR, 'user_import.xlsx')
         if os.path.exists(path_users):
             df = pd.read_excel(path_users)
@@ -41,9 +39,8 @@ def run_import():
                     "INSERT OR IGNORE INTO users (login, password, fio, role_id) VALUES (?,?,?,?)",
                     (str(row['Логин']), str(row['Пароль']), str(row['ФИО']),
                      role_id))
-            print("✓ Пользователи загружены")
+            print("Пользователи загружены")
 
-        # 3. Товары (Tovar.xlsx)
         path_tovar = os.path.join(DATA_DIR, 'Tovar.xlsx')
         if os.path.exists(path_tovar):
             df = pd.read_excel(path_tovar)
@@ -69,7 +66,7 @@ def run_import():
                                 int(row['Кол-во на складе']),
                                 str(row['Фото'] or ""), cat_id, man_id, sup_id,
                                 unit_id))
-            print("✓ Товары загружены")
+            print("Товары загружены")
 
         conn.commit()
         print("\nИмпорт в БД 'shoe_store.db' успешно завершен!")

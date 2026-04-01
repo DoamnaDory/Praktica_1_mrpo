@@ -1,11 +1,9 @@
 import sqlite3
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                             QScrollArea, QPushButton, QFrame, QLineEdit,
-                             QComboBox, QMessageBox, QSizePolicy)
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (QScrollArea, QLineEdit,
+                             QComboBox)
+
 from styles import STYLE_SHEET
-from editor_window import ProductEditorWindow  # Импортируем окно редактора
+from editor_window import ProductEditorWindow
 
 from PyQt6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QLabel, QWidget, \
     QPushButton
@@ -25,14 +23,14 @@ class ProductWidget(QFrame):
          self.man_name, self.sup_name) = product_data
 
         self.setObjectName("productCard")
-        self.setFrameShape(QFrame.Shape.NoFrame)  # Убираем стандартную рамку
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self.setMinimumHeight(180)
 
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(20)
 
-        # 1. ФОТО (Слева)
+        # Фото
         self.img_label = QLabel()
         self.img_label.setFixedSize(130, 130)
         pix = QPixmap(f"data/{self.photo}") if self.photo else QPixmap(
@@ -43,18 +41,18 @@ class ProductWidget(QFrame):
                        Qt.TransformationMode.SmoothTransformation))
         main_layout.addWidget(self.img_label)
 
-        # 2. ИНФОРМАЦИЯ (Центр)
+        # Информация
         info_container = QWidget()
         info_layout = QVBoxLayout(info_container)
         info_layout.setContentsMargins(0, 0, 0, 0)
         info_layout.setSpacing(2)
         info_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Категория | Наименование
+        # Категория и Наименование
         info_layout.addWidget(QLabel(
             f"<span style='color: #555'>{self.cat_name}</span> | <b>{self.name}</b>"))
 
-        # Описание (растягивается до скидки)
+        # Описание
         desc_lbl = QLabel(f"<b>Описание товара:</b> {self.desc}")
         desc_lbl.setWordWrap(True)
         info_layout.addWidget(desc_lbl)
@@ -64,11 +62,7 @@ class ProductWidget(QFrame):
         info_layout.addWidget(QLabel(
             f"<b>Поставщик:</b> {self.sup_name if self.sup_name else 'Не указан'}"))
 
-        # Скидка (текстом внутри списка)
-        info_layout.addWidget(
-            QLabel(f"<b>Действующая скидка:</b> {self.discount}%"))
-
-        # Цена (логика зачеркивания)
+        # Цена
         self.price_label = QLabel()
         if self.discount > 0:
             new_price = self.price * (1 - self.discount / 100)
@@ -86,7 +80,7 @@ class ProductWidget(QFrame):
 
         main_layout.addWidget(info_container, stretch=1)
 
-        # 3. КВАДРАТ СКИДКИ (Справа)
+        # Скидка слева
         self.discount_box = QLabel(f"{self.discount}%")
         self.discount_box.setFixedSize(60, 60)
         self.discount_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -94,13 +88,11 @@ class ProductWidget(QFrame):
             "border: 1px solid black; font-weight: bold; font-size: 16px;")
         main_layout.addWidget(self.discount_box)
 
-        # 4. КНОПКИ АДМИНА
+        # Кнопки админа
         if self.role == "Администратор":
             btns = QVBoxLayout()
-            # Кнопка РЕДАКТИРОВАТЬ
             btn_edit = QPushButton("✎")
             btn_edit.setFixedSize(35, 35)
-            # Фикс: передаем p_id именно этой карточки
             btn_edit.clicked.connect(
                 lambda: self.parent_window.open_editor(self.p_id))
 
@@ -116,7 +108,6 @@ class ProductWidget(QFrame):
         self.apply_styles()
 
     def apply_styles(self):
-        # Без обводки, только фон
         if self.quantity == 0:
             self.setStyleSheet("background-color: #ADD8E6;")
         elif self.discount > 15:
@@ -126,7 +117,7 @@ class ProductWidget(QFrame):
                 "border: 1px solid white; color: white; font-weight: bold;")
 
     def delete_product(self):
-        """Логика удаления товара с проверкой по ТЗ"""
+        """Удаление товара"""
         import sqlite3
         from PyQt6.QtWidgets import QMessageBox
 
@@ -139,7 +130,6 @@ class ProductWidget(QFrame):
                 conn = sqlite3.connect('shoe_store.db')
                 cur = conn.cursor()
 
-                # Проверка по ТЗ: нельзя удалять, если товар есть в заказах
                 cur.execute(
                     "SELECT COUNT(*) FROM order_items WHERE product_id = ?",
                     (self.p_id,))
@@ -152,7 +142,6 @@ class ProductWidget(QFrame):
                     conn.commit()
                     QMessageBox.information(self, "Успех",
                                             "Товар успешно удален.")
-                    # Обновляем список в главном окне
                     self.parent_window.load_products()
 
                 conn.close()
@@ -171,7 +160,7 @@ class ProductListWindow(QWidget):
 
         main_layout = QVBoxLayout(self)
 
-        # --- 1. ШАПКА (Выход, Добавление, ФИО) ---
+        # Шапка (Выход, Добавление, ФИО)
         header = QHBoxLayout()
         btn_back = QPushButton("Выход")
         btn_back.clicked.connect(self.go_back)
@@ -179,7 +168,7 @@ class ProductListWindow(QWidget):
 
         if self.role == "Администратор":
             btn_add = QPushButton("Добавить товар")
-            btn_add.setObjectName("primaryButton")  # Акцентный цвет из styles.py
+            btn_add.setObjectName("primaryButton")
             btn_add.clicked.connect(lambda: self.open_editor())
             header.addWidget(btn_add)
 
@@ -188,12 +177,10 @@ class ProductListWindow(QWidget):
             QLabel(f"Пользователь: <b>{user_fio}</b> ({role_name})"))
         main_layout.addLayout(header)
 
-        # --- 2. ПАНЕЛЬ УПРАВЛЕНИЯ ---
+        # Пануль управления
         self.controls_layout = QHBoxLayout()
 
-        # Проверяем роль: только Менеджер и Админ видят эти инструменты
         if self.role in ["Менеджер", "Администратор"]:
-            # Теперь создаем и надписи, и сами виджеты внутри условия
             lbl_search = QLabel("Поиск:")
             self.search_input = QLineEdit()
             self.search_input.setPlaceholderText("Поиск по названию...")
@@ -210,7 +197,6 @@ class ProductListWindow(QWidget):
             self.fill_manufacturers()
             self.filter_combo.currentIndexChanged.connect(self.load_products)
 
-            # Добавляем всё на панель
             self.controls_layout.addWidget(lbl_search)
             self.controls_layout.addWidget(self.search_input)
             self.controls_layout.addWidget(lbl_sort)
@@ -218,16 +204,13 @@ class ProductListWindow(QWidget):
             self.controls_layout.addWidget(lbl_filter)
             self.controls_layout.addWidget(self.filter_combo)
         else:
-            # Для Гостей и Клиентов создаем скрытые "заглушки",
-            # чтобы метод load_products не сломался, пытаясь к ним обратиться
             self.search_input = QLineEdit()
             self.sort_combo = QComboBox()
             self.filter_combo = QComboBox()
-            # Мы их НЕ добавляем в layout, поэтому их не будет видно вообще
 
         main_layout.addLayout(self.controls_layout)
 
-        # --- 3. СПИСОК ТОВАРОВ ---
+        # Список товаров
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.container = QWidget()
@@ -264,7 +247,7 @@ class ProductListWindow(QWidget):
                 conn = sqlite3.connect('shoe_store.db')
                 cur = conn.cursor()
 
-                # 1. БАЗОВЫЙ ЗАПРОС (Теперь тут НЕТ знаков вопроса)
+                # Базовый запрос
                 query = '''SELECT p.id, p.article, p.name, p.description, p.price, 
                                       p.discount, p.quantity, p.photo_path, 
                                       c.name, m.name, s.name 
@@ -272,32 +255,30 @@ class ProductListWindow(QWidget):
                                LEFT JOIN categories c ON p.category_id = c.id
                                LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
                                LEFT JOIN suppliers s ON p.supplier_id = s.id
-                               WHERE 1=1'''  # Это условие всегда верно, оно нужно для удобства добавления AND
+                               WHERE 1=1'''
 
                 params = []
 
-                # 2. ЛОГИКА ПОИСКА (Добавляем, только если есть текст)
-                # Проверяем, что роль позволяет поиск И поле не пустое
+                # Логика поиска
                 search_text = self.search_input.text().strip()
                 if self.role in ["Менеджер", "Администратор"] and search_text:
                     query += " AND (LOWER(p.name) LIKE LOWER(?) OR LOWER(p.description) LIKE LOWER(?) OR LOWER(p.article) LIKE LOWER(?))"
                     term = f"%{search_text}%"
                     params.extend([term, term, term])
 
-                # 3. ЛОГИКА ФИЛЬТРАЦИИ
+                # Логика фильтрации
                 if self.role in ["Менеджер",
                                  "Администратор"] and self.filter_combo.currentText() != "Все производители":
                     query += " AND m.name = ?"
                     params.append(self.filter_combo.currentText())
 
-                # 4. ЛОГИКА СОРТИРОВКИ (Она идет в самом конце запроса)
+                # Логика сортировки
                 if self.role in ["Менеджер", "Администратор"]:
                     if self.sort_combo.currentIndex() == 1:
                         query += " ORDER BY p.quantity ASC"
                     elif self.sort_combo.currentIndex() == 2:
                         query += " ORDER BY p.quantity DESC"
 
-                # 5. ВЫПОЛНЕНИЕ (Теперь количество ? и элементов в params совпадет идеально)
                 cur.execute(query, params)
                 rows = cur.fetchall()
 
@@ -307,7 +288,6 @@ class ProductListWindow(QWidget):
                     if widget: widget.setParent(None)
 
                 for p in rows:
-                    # Не забудь: в ProductWidget должно быть 11 переменных в распаковке!
                     self.list_layout.addWidget(ProductWidget(p, self.role, self))
 
                 conn.close()
