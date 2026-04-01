@@ -164,3 +164,43 @@ class ProductEditorWindow(QDialog):
             self.accept()
         except Exception as e:
             QMessageBox.critical(self, "Ошибка БД", f"Не спасли товар: {e}")
+
+    def load_product_data(self):
+        """Загрузка существующих данных товара для редактирования"""
+        try:
+            conn = sqlite3.connect('shoe_store.db')
+            cur = conn.cursor()
+
+            # Достаем все нужные поля по ID
+            cur.execute("""SELECT name, description, price, discount, quantity, 
+                                  category_id, manufacturer_id, supplier_id 
+                           FROM products WHERE id=?""", (self.p_id,))
+            res = cur.fetchone()
+            conn.close()
+
+            if res:
+                # 1. Заполняем простые поля
+                self.name_input.setText(str(res[0]))
+                self.desc_input.setPlainText(str(res[1]))
+                self.price_input.setValue(float(res[2]))
+                self.disc_input.setValue(int(res[3]))
+                self.qty_input.setValue(int(res[4]))
+
+                # 2. Устанавливаем значения в комбобоксах
+                # Ищем индекс ID в наших списках, которые мы загрузили в load_lists
+                cat_idx = next(
+                    (i for i, c in enumerate(self.categories) if c[0] == res[5]),
+                    0)
+                self.cat_combo.setCurrentIndex(cat_idx)
+
+                man_idx = next((i for i, m in enumerate(self.manufacturers) if
+                                m[0] == res[6]), 0)
+                self.man_combo.setCurrentIndex(man_idx)
+
+                sup_idx = next(
+                    (i for i, s in enumerate(self.suppliers) if s[0] == res[7]),
+                    0)
+                self.sup_combo.setCurrentIndex(sup_idx)
+
+        except Exception as e:
+            print(f"Ошибка при загрузке данных товара: {e}")
