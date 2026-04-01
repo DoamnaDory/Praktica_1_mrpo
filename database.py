@@ -1,8 +1,8 @@
 import sqlite3
 import os
 
-DB_NAME = 'shoe_store.db'
-SQL_SCRIPT = 'create_db.sql'
+DB_NAME = "shoe_store.db"
+SQL_SCRIPT = "create_db.sql"
 
 
 def create_database():
@@ -13,7 +13,7 @@ def create_database():
     cursor.execute("PRAGMA foreign_keys = ON;")
 
     if os.path.exists(SQL_SCRIPT):
-        with open(SQL_SCRIPT, 'r', encoding='utf-8') as f:
+        with open(SQL_SCRIPT, "r", encoding="utf-8") as f:
             sql_commands = f.read()
             cursor.executescript(sql_commands)
             print("База данных и таблицы успешно созданы!")
@@ -24,5 +24,5 @@ def create_database():
     conn.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     create_database()

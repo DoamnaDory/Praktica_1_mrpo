@@ -1,7 +1,15 @@
 import sys
 import sqlite3
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                             QLineEdit, QPushButton, QLabel, QMessageBox)
+from PyQt6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QLineEdit,
+    QPushButton,
+    QLabel,
+    QMessageBox,
+)
 from PyQt6.QtGui import QPixmap, QIcon
 from PyQt6.QtCore import Qt
 from styles import STYLE_SHEET
@@ -30,16 +38,20 @@ class LoginWindow(QMainWindow):
         layout = QVBoxLayout(central_widget)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.setWindowIcon(
-            QIcon("data/Icon.png"))
+        self.setWindowIcon(QIcon("data/Icon.png"))
 
         # Логотип
         self.logo_label = QLabel()
         pixmap = QPixmap("data/Icon.png")
         if not pixmap.isNull():
             self.logo_label.setPixmap(
-                pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio,
-                              Qt.TransformationMode.SmoothTransformation))
+                pixmap.scaled(
+                    150,
+                    150,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
         else:
             self.logo_label.setText("ЛОГОТИП (файл не найден)")
 
@@ -68,14 +80,17 @@ class LoginWindow(QMainWindow):
         login = self.login_input.text()
         password = self.password_input.text()
 
-        conn = sqlite3.connect('shoe_store.db')
+        conn = sqlite3.connect("shoe_store.db")
         cursor = conn.cursor()
-        cursor.execute('''
-            SELECT users.fio, roles.name 
-            FROM users 
-            JOIN roles ON users.role_id = roles.id 
+        cursor.execute(
+            """
+            SELECT users.fio, roles.name
+            FROM users
+            JOIN roles ON users.role_id = roles.id
             WHERE login = ? AND password = ?
-        ''', (login, password))
+        """,
+            (login, password),
+        )
         user = cursor.fetchone()
         conn.close()
 

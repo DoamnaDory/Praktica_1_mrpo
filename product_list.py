@@ -1,12 +1,17 @@
 import sqlite3
-from PyQt6.QtWidgets import (QScrollArea, QLineEdit,
-                             QComboBox)
+from PyQt6.QtWidgets import QScrollArea, QLineEdit, QComboBox
 
 from styles import STYLE_SHEET
 from editor_window import ProductEditorWindow
 
-from PyQt6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QLabel, QWidget, \
-    QPushButton
+from PyQt6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QVBoxLayout,
+    QLabel,
+    QWidget,
+    QPushButton,
+)
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 
@@ -18,9 +23,19 @@ class ProductWidget(QFrame):
         self.role = role
 
         # Распаковка (ID, Артикул, Название, Описание, Цена, Скидка, Кол-во, Фото, Категория, Производитель)
-        (self.p_id, self.art, self.name, self.desc, self.price,
-         self.discount, self.quantity, self.photo, self.cat_name,
-         self.man_name, self.sup_name) = product_data
+        (
+            self.p_id,
+            self.art,
+            self.name,
+            self.desc,
+            self.price,
+            self.discount,
+            self.quantity,
+            self.photo,
+            self.cat_name,
+            self.man_name,
+            self.sup_name,
+        ) = product_data
 
         self.setObjectName("productCard")
         self.setFrameShape(QFrame.Shape.NoFrame)
@@ -33,12 +48,20 @@ class ProductWidget(QFrame):
         # Фото
         self.img_label = QLabel()
         self.img_label.setFixedSize(130, 130)
-        pix = QPixmap(f"data/{self.photo}") if self.photo else QPixmap(
-            "data/picture.png")
-        if pix.isNull(): pix = QPixmap("data/picture.png")
+        pix = (
+            QPixmap(f"data/{self.photo}") if self.photo else QPixmap(
+                "data/picture.png")
+        )
+        if pix.isNull():
+            pix = QPixmap("data/picture.png")
         self.img_label.setPixmap(
-            pix.scaled(130, 130, Qt.AspectRatioMode.KeepAspectRatio,
-                       Qt.TransformationMode.SmoothTransformation))
+            pix.scaled(
+                130,
+                130,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        )
         main_layout.addWidget(self.img_label)
 
         # Информация
@@ -49,8 +72,11 @@ class ProductWidget(QFrame):
         info_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Категория и Наименование
-        info_layout.addWidget(QLabel(
-            f"<span style='color: #555'>{self.cat_name}</span> | <b>{self.name}</b>"))
+        info_layout.addWidget(
+            QLabel(
+                f"<span style='color: #555'>{self.cat_name}</span> | <b>{self.name}</b>"
+            )
+        )
 
         # Описание
         desc_lbl = QLabel(f"<b>Описание товара:</b> {self.desc}")
@@ -59,8 +85,11 @@ class ProductWidget(QFrame):
 
         # Производитель и Поставщик
         info_layout.addWidget(QLabel(f"<b>Производитель:</b> {self.man_name}"))
-        info_layout.addWidget(QLabel(
-            f"<b>Поставщик:</b> {self.sup_name if self.sup_name else 'Не указан'}"))
+        info_layout.addWidget(
+            QLabel(
+                f"<b>Поставщик:</b> {self.sup_name if self.sup_name else 'Не указан'}"
+            )
+        )
 
         # Цена
         self.price_label = QLabel()
@@ -75,8 +104,11 @@ class ProductWidget(QFrame):
         info_layout.addWidget(self.price_label)
 
         # Единица измерения и Количество
-        info_layout.addWidget(QLabel(
-            f"<b>Единица измерения:</b> шт. | <b>Количество на складе:</b> {self.quantity}"))
+        info_layout.addWidget(
+            QLabel(
+                f"<b>Единица измерения:</b> шт. | <b>Количество на складе:</b> {self.quantity}"
+            )
+        )
 
         main_layout.addWidget(info_container, stretch=1)
 
@@ -85,7 +117,8 @@ class ProductWidget(QFrame):
         self.discount_box.setFixedSize(60, 60)
         self.discount_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.discount_box.setStyleSheet(
-            "border: 1px solid black; font-weight: bold; font-size: 16px;")
+            "border: 1px solid black; font-weight: bold; font-size: 16px;"
+        )
         main_layout.addWidget(self.discount_box)
 
         # Кнопки админа
@@ -114,28 +147,36 @@ class ProductWidget(QFrame):
             self.setStyleSheet("background-color: #2E8B57; color: white;")
             self.price_label.setStyleSheet("color: white;")
             self.discount_box.setStyleSheet(
-                "border: 1px solid white; color: white; font-weight: bold;")
+                "border: 1px solid white; color: white; font-weight: bold;"
+            )
 
     def delete_product(self):
         """Удаление товара"""
         import sqlite3
         from PyQt6.QtWidgets import QMessageBox
 
-        reply = QMessageBox.question(self, 'Удаление',
-                                     f"Вы действительно хотите удалить {self.name}?",
-                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        reply = QMessageBox.question(
+            self,
+            "Удаление",
+            f"Вы действительно хотите удалить {self.name}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
 
         if reply == QMessageBox.StandardButton.Yes:
             try:
-                conn = sqlite3.connect('shoe_store.db')
+                conn = sqlite3.connect("shoe_store.db")
                 cur = conn.cursor()
 
                 cur.execute(
                     "SELECT COUNT(*) FROM order_items WHERE product_id = ?",
-                    (self.p_id,))
+                    (self.p_id,),
+                )
                 if cur.fetchone()[0] > 0:
-                    QMessageBox.warning(self, "Ошибка",
-                                        "Нельзя удалить товар, так как он есть в заказах!")
+                    QMessageBox.warning(
+                        self,
+                        "Ошибка",
+                        "Нельзя удалить товар, так как он есть в заказах!",
+                    )
                 else:
                     cur.execute("DELETE FROM products WHERE id = ?",
                                 (self.p_id,))
@@ -146,8 +187,9 @@ class ProductWidget(QFrame):
 
                 conn.close()
             except Exception as e:
-                QMessageBox.critical(self, "Ошибка БД",
-                                     f"Произошла ошибка при удалении: {e}")
+                QMessageBox.critical(
+                    self, "Ошибка БД", f"Произошла ошибка при удалении: {e}"
+                )
 
 
 class ProductListWindow(QWidget):
@@ -189,7 +231,8 @@ class ProductListWindow(QWidget):
             lbl_sort = QLabel("Сортировка:")
             self.sort_combo = QComboBox()
             self.sort_combo.addItems(
-                ["Без сортировки", "Кол-во (возр.)", "Кол-во (убыв.)"])
+                ["Без сортировки", "Кол-во (возр.)", "Кол-во (убыв.)"]
+            )
             self.sort_combo.currentIndexChanged.connect(self.load_products)
 
             lbl_filter = QLabel("Производитель:")
@@ -226,7 +269,7 @@ class ProductListWindow(QWidget):
         self.filter_combo.clear()
         self.filter_combo.addItem("Все производители")
         try:
-            conn = sqlite3.connect('shoe_store.db')
+            conn = sqlite3.connect("shoe_store.db")
             cur = conn.cursor()
             cur.execute("SELECT name FROM manufacturers")
             for row in cur.fetchall():
@@ -240,22 +283,23 @@ class ProductListWindow(QWidget):
         # Очистка текущего списка
         for i in reversed(range(self.list_layout.count())):
             widget = self.list_layout.itemAt(i).widget()
-            if widget: widget.setParent(None)
+            if widget:
+                widget.setParent(None)
 
         try:
             try:
-                conn = sqlite3.connect('shoe_store.db')
+                conn = sqlite3.connect("shoe_store.db")
                 cur = conn.cursor()
 
                 # Базовый запрос
-                query = '''SELECT p.id, p.article, p.name, p.description, p.price, 
-                                      p.discount, p.quantity, p.photo_path, 
-                                      c.name, m.name, s.name 
+                query = """SELECT p.id, p.article, p.name, p.description, p.price,
+                                      p.discount, p.quantity, p.photo_path,
+                                      c.name, m.name, s.name
                                FROM products p
                                LEFT JOIN categories c ON p.category_id = c.id
                                LEFT JOIN manufacturers m ON p.manufacturer_id = m.id
                                LEFT JOIN suppliers s ON p.supplier_id = s.id
-                               WHERE 1=1'''
+                               WHERE 1=1"""
 
                 params = []
 
@@ -267,8 +311,10 @@ class ProductListWindow(QWidget):
                     params.extend([term, term, term])
 
                 # Логика фильтрации
-                if self.role in ["Менеджер",
-                                 "Администратор"] and self.filter_combo.currentText() != "Все производители":
+                is_staff = self.role in ["Менеджер", "Администратор"]
+                has_filter = self.filter_combo.currentText() != "Все производители"
+
+                if is_staff and has_filter:
                     query += " AND m.name = ?"
                     params.append(self.filter_combo.currentText())
 
@@ -285,7 +331,8 @@ class ProductListWindow(QWidget):
                 # Очищаем список перед отрисовкой
                 for i in reversed(range(self.list_layout.count())):
                     widget = self.list_layout.itemAt(i).widget()
-                    if widget: widget.setParent(None)
+                    if widget:
+                        widget.setParent(None)
 
                 for p in rows:
                     self.list_layout.addWidget(ProductWidget(p, self.role, self))

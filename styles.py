@@ -6,8 +6,8 @@ QMainWindow, QWidget {
 }
 
 QLineEdit {
-    background-color: #FFFFFF; 
-    color: #000000;         
+    background-color: #FFFFFF;
+    color: #000000;
     border: 2px solid #7FFF00;
     border-radius: 5px;
     padding: 5px;

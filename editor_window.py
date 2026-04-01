@@ -1,10 +1,20 @@
 import random
 import sqlite3
 import os
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
-                             QLineEdit, QDoubleSpinBox, QSpinBox,
-                             QPushButton, QComboBox, QTextEdit, QMessageBox,
-                             QFileDialog)
+from PyQt6.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QDoubleSpinBox,
+    QSpinBox,
+    QPushButton,
+    QComboBox,
+    QTextEdit,
+    QMessageBox,
+    QFileDialog,
+)
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 
@@ -13,8 +23,7 @@ class ProductEditorWindow(QDialog):
     def __init__(self, p_id=None):
         super().__init__()
         self.p_id = p_id
-        self.setWindowTitle(
-            "Редактирование товара" if p_id else "Добавление товара")
+        self.setWindowTitle("Редактирование товара" if p_id else "Добавление товара")
         self.setFixedWidth(500)
 
         # Пути
@@ -55,8 +64,11 @@ class ProductEditorWindow(QDialog):
         self.img_preview = QLabel()
         self.img_preview.setFixedSize(300, 200)
         self.img_preview.setStyleSheet("border: 1px solid gray;")
-        self.img_preview.setPixmap(QPixmap("data/picture.png").scaled(300, 200,
-                                                                      Qt.AspectRatioMode.KeepAspectRatio))
+        self.img_preview.setPixmap(
+            QPixmap("data/picture.png").scaled(
+                300, 200, Qt.AspectRatioMode.KeepAspectRatio
+            )
+        )
 
         btn_img = QPushButton("Выбрать фото\n(300x200)")
         btn_img.clicked.connect(self.select_image)
@@ -90,25 +102,25 @@ class ProductEditorWindow(QDialog):
         # Числовые поля
         nums = QHBoxLayout()
 
-        v1 = QVBoxLayout();
-        v1.addWidget(QLabel("Цена:"));
+        v1 = QVBoxLayout()
+        v1.addWidget(QLabel("Цена:"))
         self.price_input = QDoubleSpinBox()
-        self.price_input.setRange(0, 999999);
-        nums.addLayout(v1);
+        self.price_input.setRange(0, 999999)
+        nums.addLayout(v1)
         v1.addWidget(self.price_input)
 
-        v2 = QVBoxLayout();
-        v2.addWidget(QLabel("Скидка %:"));
+        v2 = QVBoxLayout()
+        v2.addWidget(QLabel("Скидка %:"))
         self.disc_input = QSpinBox()
-        self.disc_input.setRange(0, 100);
-        nums.addLayout(v2);
+        self.disc_input.setRange(0, 100)
+        nums.addLayout(v2)
         v2.addWidget(self.disc_input)
 
-        v3 = QVBoxLayout();
-        v3.addWidget(QLabel("Склад:"));
+        v3 = QVBoxLayout()
+        v3.addWidget(QLabel("Склад:"))
         self.qty_input = QSpinBox()
-        self.qty_input.setRange(0, 99999);
-        nums.addLayout(v3);
+        self.qty_input.setRange(0, 99999)
+        nums.addLayout(v3)
         v3.addWidget(self.qty_input)
 
         layout.addLayout(nums)
@@ -123,12 +135,12 @@ class ProductEditorWindow(QDialog):
         btn_save.clicked.connect(self.save)
         btn_cancel = QPushButton("Отмена")
         btn_cancel.clicked.connect(self.reject)
-        btns.addWidget(btn_save);
+        btns.addWidget(btn_save)
         btns.addWidget(btn_cancel)
         layout.addLayout(btns)
 
     def load_lists(self):
-        conn = sqlite3.connect('shoe_store.db')
+        conn = sqlite3.connect("shoe_store.db")
         cur = conn.cursor()
 
         cur.execute("SELECT id, name FROM categories")
@@ -145,22 +157,27 @@ class ProductEditorWindow(QDialog):
         conn.close()
 
     def select_image(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Выберите изображение",
-                                                   "",
-                                                   "Images (*.png *.jpg *.jpeg)")
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Выберите изображение", "", "Images (*.png *.jpg *.jpeg)"
+        )
         if file_path:
             self.new_photo_path = file_path
-            pix = QPixmap(file_path).scaled(300, 200,
-                                            Qt.AspectRatioMode.KeepAspectRatio,
-                                            Qt.TransformationMode.SmoothTransformation)
+            pix = QPixmap(file_path).scaled(
+                300,
+                200,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
             self.img_preview.setPixmap(pix)
 
     def load_product_data(self):
-        conn = sqlite3.connect('shoe_store.db')
+        conn = sqlite3.connect("shoe_store.db")
         cur = conn.cursor()
-        cur.execute("""SELECT name, category_id, description, manufacturer_id, supplier_id, 
+        cur.execute(
+            """SELECT name, category_id, description, manufacturer_id, supplier_id,
                               price, discount, quantity, photo_path, id FROM products WHERE id=?""",
-                    (self.p_id,))
+            (self.p_id,),
+        )
         res = cur.fetchone()
         conn.close()
 
@@ -168,15 +185,16 @@ class ProductEditorWindow(QDialog):
             self.name_input.setText(res[0])
             self.id_input.setText(str(res[9]))
             # Установка индексов в комбобоксах
-            self.cat_combo.setCurrentIndex(next(
-                (i for i, c in enumerate(self.categories) if c[0] == res[1]), 0))
+            self.cat_combo.setCurrentIndex(
+                next((i for i, c in enumerate(self.categories) if c[0] == res[1]), 0)
+            )
             self.desc_input.setPlainText(res[2])
-            self.man_combo.setCurrentIndex(next(
-                (i for i, m in enumerate(self.manufacturers) if m[0] == res[3]),
-                0))
+            self.man_combo.setCurrentIndex(
+                next((i for i, m in enumerate(self.manufacturers) if m[0] == res[3]), 0)
+            )
             self.sup_combo.setCurrentIndex(
-                next((i for i, s in enumerate(self.suppliers) if s[0] == res[4]),
-                     0))
+                next((i for i, s in enumerate(self.suppliers) if s[0] == res[4]), 0)
+            )
             self.price_input.setValue(float(res[5] if res[5] else 0))
 
             self.disc_input.setValue(int(res[6] if res[6] else 0))
@@ -186,8 +204,11 @@ class ProductEditorWindow(QDialog):
             if self.current_photo_name:
                 path = f"data/{self.current_photo_name}"
                 if os.path.exists(path):
-                    self.img_preview.setPixmap(QPixmap(path).scaled(300, 200,
-                                                                    Qt.AspectRatioMode.KeepAspectRatio))
+                    self.img_preview.setPixmap(
+                        QPixmap(path).scaled(
+                            300, 200, Qt.AspectRatioMode.KeepAspectRatio
+                        )
+                    )
 
     def save(self):
         # Валидация
@@ -202,18 +223,22 @@ class ProductEditorWindow(QDialog):
             final_photo_name = f"prod_{random.randint(1000, 9999)}{ext}"
             new_dest = os.path.join(self.image_dir, final_photo_name)
 
-            pix = QPixmap(self.new_photo_path).scaled(300, 200,
-                                                      Qt.AspectRatioMode.IgnoreAspectRatio,
-                                                      Qt.TransformationMode.SmoothTransformation)
+            pix = QPixmap(self.new_photo_path).scaled(
+                300,
+                200,
+                Qt.AspectRatioMode.IgnoreAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
             pix.save(new_dest)
 
             if self.current_photo_name:
-                self.old_photo_to_delete = os.path.join(self.image_dir,
-                                                        self.current_photo_name)
+                self.old_photo_to_delete = os.path.join(
+                    self.image_dir, self.current_photo_name
+                )
 
         # Сохранение в БД
         try:
-            conn = sqlite3.connect('shoe_store.db')
+            conn = sqlite3.connect("shoe_store.db")
             cur = conn.cursor()
 
             cat_id = self.categories[self.cat_combo.currentIndex()][0]
@@ -221,39 +246,56 @@ class ProductEditorWindow(QDialog):
             sup_id = self.suppliers[self.sup_combo.currentIndex()][0]
 
             if self.p_id:
-                cur.execute("""UPDATE products SET name=?, category_id=?, description=?, 
-                               manufacturer_id=?, supplier_id=?, price=?, discount=?, 
+                cur.execute(
+                    """UPDATE products SET name=?, category_id=?, description=?,
+                               manufacturer_id=?, supplier_id=?, price=?, discount=?,
                                quantity=?, photo_path=? WHERE id=?""",
-                            (self.name_input.text(), cat_id,
-                             self.desc_input.toPlainText(),
-                             man_id, sup_id, self.price_input.value(),
-                             self.disc_input.value(),
-                             self.qty_input.value(), final_photo_name,
-                             self.p_id))
+                    (
+                        self.name_input.text(),
+                        cat_id,
+                        self.desc_input.toPlainText(),
+                        man_id,
+                        sup_id,
+                        self.price_input.value(),
+                        self.disc_input.value(),
+                        self.qty_input.value(),
+                        final_photo_name,
+                        self.p_id,
+                    ),
+                )
             else:
                 from random import choice
                 from string import ascii_uppercase, digits
+
                 art = f"{choice(ascii_uppercase)}{''.join(choice(digits) for _ in range(3))}{choice(ascii_uppercase)}{choice(digits)}"
 
-                cur.execute("""INSERT INTO products (article, name, category_id, description, 
-                               manufacturer_id, supplier_id, price, discount, quantity, photo_path) 
+                cur.execute(
+                    """INSERT INTO products (article, name, category_id, description,
+                               manufacturer_id, supplier_id, price, discount, quantity, photo_path)
                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                            (art, self.name_input.text(), cat_id,
-                             self.desc_input.toPlainText(),
-                             man_id, sup_id, self.price_input.value(),
-                             self.disc_input.value(),
-                             self.qty_input.value(), final_photo_name))
+                    (
+                        art,
+                        self.name_input.text(),
+                        cat_id,
+                        self.desc_input.toPlainText(),
+                        man_id,
+                        sup_id,
+                        self.price_input.value(),
+                        self.disc_input.value(),
+                        self.qty_input.value(),
+                        final_photo_name,
+                    ),
+                )
 
             conn.commit()
             conn.close()
 
             # Удаляем старое фото, если оно было заменено
-            if self.old_photo_to_delete and os.path.exists(
-                    self.old_photo_to_delete):
+            if self.old_photo_to_delete and os.path.exists(self.old_photo_to_delete):
                 try:
                     os.remove(self.old_photo_to_delete)
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Произошла ошибка: {e}")
 
             self.accept()
         except Exception as e:
