@@ -1,9 +1,13 @@
-import sqlite3
 import random
-import string
+import sqlite3
+import os
+import shutil
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QLineEdit, QDoubleSpinBox, QSpinBox,
-                             QPushButton, QComboBox, QTextEdit, QMessageBox)
+                             QPushButton, QComboBox, QTextEdit, QMessageBox,
+                             QFileDialog)
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import Qt
 
 
 class ProductEditorWindow(QDialog):
@@ -11,196 +15,253 @@ class ProductEditorWindow(QDialog):
         super().__init__()
         self.p_id = p_id
         self.setWindowTitle(
-            "Редактирование товара" if p_id else "Добавление нового товара")
-        self.setFixedWidth(450)
+            "Редактирование товара" if p_id else "Добавление товара")
+        self.setFixedWidth(500)
 
-        # Хранилища для ID из комбобоксов
+        # Пути
+        self.image_dir = "data"
+        if not os.path.exists(self.image_dir):
+            os.makedirs(self.image_dir)
+
+        self.current_photo_name = None  # Имя файла в БД
+        self.new_photo_path = None  # Путь к новому выбранному файлу на диске
+        self.old_photo_to_delete = None  # Файл, который нужно удалить при успешном сохранении
+
+        # Данные для комбобоксов
         self.categories = []
         self.manufacturers = []
         self.suppliers = []
 
         self.init_ui()
-        self.load_lists()  # Сначала загружаем списки для выбора
+        self.load_lists()
 
         if self.p_id:
             self.load_product_data()
+        else:
+            self.id_label.hide()
+            self.id_input.hide()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
 
-        # 1. Наименование (Что такое)
-        layout.addWidget(QLabel("Наименование товара (Что такое):"))
+        # ID (только для чтения)
+        self.id_label = QLabel("ID товара:")
+        self.id_input = QLineEdit()
+        self.id_input.setReadOnly(True)
+        layout.addWidget(self.id_label)
+        layout.addWidget(self.id_input)
+
+        # Фото и кнопка
+        img_layout = QHBoxLayout()
+        self.img_preview = QLabel()
+        self.img_preview.setFixedSize(300, 200)
+        self.img_preview.setStyleSheet("border: 1px solid gray;")
+        self.img_preview.setPixmap(QPixmap("data/picture.png").scaled(300, 200,
+                                                                      Qt.AspectRatioMode.KeepAspectRatio))
+
+        btn_img = QPushButton("Выбрать фото\n(300x200)")
+        btn_img.clicked.connect(self.select_image)
+
+        img_layout.addWidget(self.img_preview)
+        img_layout.addWidget(btn_img)
+        layout.addLayout(img_layout)
+
+        # Поля
+        layout.addWidget(QLabel("Наименование:"))
         self.name_input = QLineEdit()
         layout.addWidget(self.name_input)
 
-        # 2. Категория (Какая обувь)
-        layout.addWidget(QLabel("Категория (Какая обувь):"))
+        layout.addWidget(QLabel("Категория:"))
         self.cat_combo = QComboBox()
         layout.addWidget(self.cat_combo)
 
-        # 3. Описание
-        layout.addWidget(QLabel("Описание товара:"))
+        layout.addWidget(QLabel("Описание:"))
         self.desc_input = QTextEdit()
-        self.desc_input.setMaximumHeight(80)
+        self.desc_input.setMaximumHeight(70)
         layout.addWidget(self.desc_input)
 
-        # 4. Производитель
         layout.addWidget(QLabel("Производитель:"))
         self.man_combo = QComboBox()
         layout.addWidget(self.man_combo)
 
-        # 5. Поставщик
         layout.addWidget(QLabel("Поставщик:"))
         self.sup_combo = QComboBox()
         layout.addWidget(self.sup_combo)
 
-        # Слой для цифровых данных (Цена, Скидка, Кол-во)
-        nums_layout = QHBoxLayout()
+        # Числовые поля
+        nums = QHBoxLayout()
 
-        v1 = QVBoxLayout()
-        v1.addWidget(QLabel("Цена:"))
+        v1 = QVBoxLayout();
+        v1.addWidget(QLabel("Цена:"));
         self.price_input = QDoubleSpinBox()
-        self.price_input.setRange(0, 1000000)
+        self.price_input.setRange(0, 999999);
+        nums.addLayout(v1);
         v1.addWidget(self.price_input)
-        nums_layout.addLayout(v1)
 
-        v2 = QVBoxLayout()
-        v2.addWidget(QLabel("Скидка (%):"))
+        v2 = QVBoxLayout();
+        v2.addWidget(QLabel("Скидка %:"));
         self.disc_input = QSpinBox()
+        self.disc_input.setRange(0, 100);
+        nums.addLayout(v2);
         v2.addWidget(self.disc_input)
-        nums_layout.addLayout(v2)
 
-        v3 = QVBoxLayout()
-        v3.addWidget(QLabel("На складе:"))
+        v3 = QVBoxLayout();
+        v3.addWidget(QLabel("Склад:"));
         self.qty_input = QSpinBox()
-        self.qty_input.setRange(0, 10000)
-        self.qty_input.setValue(0)  # По умолчанию 0, как ты просила
+        self.qty_input.setRange(0, 99999);
+        nums.addLayout(v3);
         v3.addWidget(self.qty_input)
-        nums_layout.addLayout(v3)
 
-        layout.addLayout(nums_layout)
+        layout.addLayout(nums)
+
+        layout.addWidget(QLabel("Единица измерения:"))
+        self.unit_input = QLineEdit("шт.")
+        layout.addWidget(self.unit_input)
 
         # Кнопки
-        btn_layout = QHBoxLayout()
-        save_btn = QPushButton("Сохранить")
-        save_btn.setStyleSheet("background-color: #7FFF00; font-weight: bold;")
-        save_btn.clicked.connect(self.save)
-
-        cancel_btn = QPushButton("Отмена")
-        cancel_btn.clicked.connect(self.reject)
-
-        btn_layout.addWidget(save_btn)
-        btn_layout.addWidget(cancel_btn)
-        layout.addLayout(btn_layout)
+        btns = QHBoxLayout()
+        btn_save = QPushButton("Сохранить")
+        btn_save.clicked.connect(self.save)
+        btn_cancel = QPushButton("Отмена")
+        btn_cancel.clicked.connect(self.reject)
+        btns.addWidget(btn_save);
+        btns.addWidget(btn_cancel)
+        layout.addLayout(btns)
 
     def load_lists(self):
-        """Загружает данные в выпадающие списки из БД"""
         conn = sqlite3.connect('shoe_store.db')
         cur = conn.cursor()
 
-        # Загружаем категории
         cur.execute("SELECT id, name FROM categories")
         self.categories = cur.fetchall()
         self.cat_combo.addItems([c[1] for c in self.categories])
 
-        # Загружаем производителей
         cur.execute("SELECT id, name FROM manufacturers")
         self.manufacturers = cur.fetchall()
         self.man_combo.addItems([m[1] for m in self.manufacturers])
 
-        # Загружаем поставщиков
         cur.execute("SELECT id, name FROM suppliers")
         self.suppliers = cur.fetchall()
         self.sup_combo.addItems([s[1] for s in self.suppliers])
-
         conn.close()
 
-    @staticmethod
-    def generate_article():
-        letter1 = random.choice(string.ascii_uppercase)
-        digits = "".join(random.choices(string.digits, k=3))
-        letter2 = random.choice(string.ascii_uppercase)
-        last_digit = random.choice(string.digits)
-        return f"{letter1}{digits}{letter2}{last_digit}"
+    def select_image(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Выберите изображение",
+                                                   "",
+                                                   "Images (*.png *.jpg *.jpeg)")
+        if file_path:
+            self.new_photo_path = file_path
+            pix = QPixmap(file_path).scaled(300, 200,
+                                            Qt.AspectRatioMode.KeepAspectRatio,
+                                            Qt.TransformationMode.SmoothTransformation)
+            self.img_preview.setPixmap(pix)
+
+    def load_product_data(self):
+        conn = sqlite3.connect('shoe_store.db')
+        cur = conn.cursor()
+        cur.execute("""SELECT name, category_id, description, manufacturer_id, supplier_id, 
+                              price, discount, quantity, photo_path, id FROM products WHERE id=?""",
+                    (self.p_id,))
+        res = cur.fetchone()
+        conn.close()
+
+        if res:
+            self.name_input.setText(res[0])
+            self.id_input.setText(str(res[9]))
+            # Установка индексов в комбобоксах
+            self.cat_combo.setCurrentIndex(next(
+                (i for i, c in enumerate(self.categories) if c[0] == res[1]), 0))
+            self.desc_input.setPlainText(res[2])
+            self.man_combo.setCurrentIndex(next(
+                (i for i, m in enumerate(self.manufacturers) if m[0] == res[3]),
+                0))
+            self.sup_combo.setCurrentIndex(
+                next((i for i, s in enumerate(self.suppliers) if s[0] == res[4]),
+                     0))
+            # Цену переводим во float (так как там QDoubleSpinBox)
+            self.price_input.setValue(float(res[5] if res[5] else 0))
+
+            # Скидку и количество обязательно переводим в int!
+            self.disc_input.setValue(int(res[6] if res[6] else 0))
+            self.qty_input.setValue(int(res[7] if res[7] else 0))
+            self.current_photo_name = res[8]
+
+            if self.current_photo_name:
+                path = f"data/{self.current_photo_name}"
+                if os.path.exists(path):
+                    self.img_preview.setPixmap(QPixmap(path).scaled(300, 200,
+                                                                    Qt.AspectRatioMode.KeepAspectRatio))
 
     def save(self):
-        # Получаем выбранные ID
-        cat_id = self.categories[self.cat_combo.currentIndex()][0]
-        man_id = self.manufacturers[self.man_combo.currentIndex()][0]
-        sup_id = self.suppliers[self.sup_combo.currentIndex()][0]
-
-        name = self.name_input.text().strip()
-        desc = self.desc_input.toPlainText().strip()
-        price = self.price_input.value()
-        disc = self.disc_input.value()
-        qty = self.qty_input.value()
-
-        if not name:
-            QMessageBox.warning(self, "Ошибка", "Нужно хотя бы название!")
+        # 1. Валидация (уже ограничена SpinBox-ами, но на всякий случай)
+        if not self.name_input.text().strip():
+            QMessageBox.warning(self, "Ошибка", "Заполните название!")
             return
 
+        # 2. Обработка изображения
+        final_photo_name = self.current_photo_name
+        if self.new_photo_path:
+            # Создаем новое имя файла
+            ext = os.path.splitext(self.new_photo_path)[1]
+            final_photo_name = f"prod_{random.randint(1000, 9999)}{ext}"
+            new_dest = os.path.join(self.image_dir, final_photo_name)
+
+            # Изменение размера и сохранение
+            pix = QPixmap(self.new_photo_path).scaled(300, 200,
+                                                      Qt.AspectRatioMode.IgnoreAspectRatio,
+                                                      Qt.TransformationMode.SmoothTransformation)
+            pix.save(new_dest)
+
+            # Помечаем старое фото на удаление
+            if self.current_photo_name:
+                self.old_photo_to_delete = os.path.join(self.image_dir,
+                                                        self.current_photo_name)
+
+        # 3. Сохранение в БД
         try:
             conn = sqlite3.connect('shoe_store.db')
             cur = conn.cursor()
 
+            cat_id = self.categories[self.cat_combo.currentIndex()][0]
+            man_id = self.manufacturers[self.man_combo.currentIndex()][0]
+            sup_id = self.suppliers[self.sup_combo.currentIndex()][0]
+
             if self.p_id:
-                cur.execute("""UPDATE products SET 
-                               name=?, description=?, price=?, discount=?, quantity=?,
-                               category_id=?, manufacturer_id=?, supplier_id=?
-                               WHERE id=?""",
-                            (name, desc, price, disc, qty, cat_id, man_id,
-                             sup_id, self.p_id))
+                cur.execute("""UPDATE products SET name=?, category_id=?, description=?, 
+                               manufacturer_id=?, supplier_id=?, price=?, discount=?, 
+                               quantity=?, photo_path=? WHERE id=?""",
+                            (self.name_input.text(), cat_id,
+                             self.desc_input.toPlainText(),
+                             man_id, sup_id, self.price_input.value(),
+                             self.disc_input.value(),
+                             self.qty_input.value(), final_photo_name,
+                             self.p_id))
             else:
-                new_art = self.generate_article()
-                cur.execute("""INSERT INTO products 
-                               (article, name, description, price, discount, quantity, 
-                                category_id, manufacturer_id, supplier_id) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                            (new_art, name, desc, price, disc, qty, cat_id,
-                             man_id, sup_id))
+                # Генерация артикула (как делали ранее)
+                from random import choice
+                from string import ascii_uppercase, digits
+                art = f"{choice(ascii_uppercase)}{''.join(choice(digits) for _ in range(3))}{choice(ascii_uppercase)}{choice(digits)}"
+
+                cur.execute("""INSERT INTO products (article, name, category_id, description, 
+                               manufacturer_id, supplier_id, price, discount, quantity, photo_path) 
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (art, self.name_input.text(), cat_id,
+                             self.desc_input.toPlainText(),
+                             man_id, sup_id, self.price_input.value(),
+                             self.disc_input.value(),
+                             self.qty_input.value(), final_photo_name))
 
             conn.commit()
             conn.close()
+
+            # 4. Удаляем старое фото, если оно было заменено
+            if self.old_photo_to_delete and os.path.exists(
+                    self.old_photo_to_delete):
+                try:
+                    os.remove(self.old_photo_to_delete)
+                except:
+                    pass
+
             self.accept()
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка БД", f"Не спасли товар: {e}")
-
-    def load_product_data(self):
-        """Загрузка существующих данных товара для редактирования"""
-        try:
-            conn = sqlite3.connect('shoe_store.db')
-            cur = conn.cursor()
-
-            # Достаем все нужные поля по ID
-            cur.execute("""SELECT name, description, price, discount, quantity, 
-                                  category_id, manufacturer_id, supplier_id 
-                           FROM products WHERE id=?""", (self.p_id,))
-            res = cur.fetchone()
-            conn.close()
-
-            if res:
-                # 1. Заполняем простые поля
-                self.name_input.setText(str(res[0]))
-                self.desc_input.setPlainText(str(res[1]))
-                self.price_input.setValue(float(res[2]))
-                self.disc_input.setValue(int(res[3]))
-                self.qty_input.setValue(int(res[4]))
-
-                # 2. Устанавливаем значения в комбобоксах
-                # Ищем индекс ID в наших списках, которые мы загрузили в load_lists
-                cat_idx = next(
-                    (i for i, c in enumerate(self.categories) if c[0] == res[5]),
-                    0)
-                self.cat_combo.setCurrentIndex(cat_idx)
-
-                man_idx = next((i for i, m in enumerate(self.manufacturers) if
-                                m[0] == res[6]), 0)
-                self.man_combo.setCurrentIndex(man_idx)
-
-                sup_idx = next(
-                    (i for i, s in enumerate(self.suppliers) if s[0] == res[7]),
-                    0)
-                self.sup_combo.setCurrentIndex(sup_idx)
-
-        except Exception as e:
-            print(f"Ошибка при загрузке данных товара: {e}")
+            QMessageBox.critical(self, "Ошибка", f"Критическая ошибка БД: {e}")
